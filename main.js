@@ -17,7 +17,7 @@
             isLog: v
         })
 
-        scr.process()
+        await scr.process()
     })
     .option('url', {
       type: 'string',

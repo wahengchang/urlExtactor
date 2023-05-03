@@ -1,4 +1,5 @@
 const file = require('./file')
+const fs = require('fs')
 
 class Dictionary{
     constructor(path) {
@@ -18,11 +19,20 @@ class Dictionary{
         return file.readLineAsArray(this.path)
     }
 
+    deleteLineByString (lineStr) {
+        return file.deleteLineByString(this.path, lineStr)
+    }
+
+    deleteFile () {
+        fs.unlinkSync(this.path);
+    }
+
     search(key) {
         const arr = this.readLineAsArray()
 
         return arr.filter(lineStr => {
-            return lineStr.includes(key)
+            // console.log(key, lineStr)
+            return key === lineStr
         })
     }
 
