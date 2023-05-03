@@ -2,7 +2,9 @@ const browserHtml = require('./browserHtml')
 const Dictionary = require('./dictionary')
 const strUtil = require('./string')
 
-const stateMachineConfig = (sourceUrl) => {
+const stateMachineConfig = (sourceUrl, config = {}) => {
+    const isBrowser = config.isBrowser
+    const regexp = config.regexp
     const dicTodo = new Dictionary(`./${strUtil.onlyDigitChar(sourceUrl)}-todo.txt`)
     const dicDone = new Dictionary(`./${strUtil.onlyDigitChar(sourceUrl)}-done.txt`)
     dicTodo.init()
@@ -30,12 +32,17 @@ const stateMachineConfig = (sourceUrl) => {
         scrapeSingleUrl: async (url) => {
             console.log('[STATE] scrapeSingleUrl, ',url)
     
-            const fetcher = browserHtml.fetchHtml
-            // const fetcher = browserHtml.fetchHtmlAxios
+            const fetcher = isBrowser? browserHtml.fetchHtml : browserHtml.fetchHtmlAxios
             
             const html = await fetcher(url)
-            const links = await browserHtml.extraxtInternalLinksFromHtml(html, url)
-    
+            const _links = await browserHtml.extraxtInternalLinksFromHtml(html, url)
+            const links =regexp
+            ? _links.filter(item => {
+                const pattern = new RegExp(regexp);
+                return pattern.test(item)
+            })
+            : _links
+
             //1) move todo done
             dicTodo.deleteLineByString(url)
             dicDone.appendLine(url)
@@ -120,11 +127,11 @@ const stateMachineConfig = (sourceUrl) => {
 
 
 class StateMachine {
-    constructor(state = 'start', param) {
-        this.state = state
-        this.param = param
-        this.sourceUrl = param
-        this.SM = stateMachineConfig(this.sourceUrl)
+    constructor(url, config = {}) {
+        this.state = 'start'
+        this.param = url
+        this.sourceUrl = url
+        this.SM = stateMachineConfig(this.sourceUrl, config)
     }
     async process() {
         const {state, param, SM} = this
@@ -143,22 +150,4 @@ class StateMachine {
     }
 }
 
-
-
-class Scraper {
-    constructor(url, config = {}) {
-        this.url = url
-        this.isLog = config.isLog
-        this.isBrowser = config.isBrowser
-        this.regexp = config.regexp
-    }
-
-    async process () {
-        const {url} = this
-        const sm = new StateMachine('start', url)
-        await sm.process()
-    }
-
-}
-
-module.exports = Scraper
+module.exports = StateMachine
