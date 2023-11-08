@@ -55,28 +55,38 @@ const extraxtLinksFromHtml = async (html) => {
   return [...new Set(result)]
 }
 
+const normalizeUrl = (sourceUrl, linkUrl) => {
+    try {
+        const parsedSourceUrl = new URL(sourceUrl);
+        const parsedLinkUrl = new URL(linkUrl, sourceUrl);
+
+        if ((parsedSourceUrl.hostname).replace('www.', '') !== parsedLinkUrl.hostname.replace('www.', '')) {
+            return null
+        }
+
+        if (linkUrl.startsWith('/')) {
+            return parsedSourceUrl.origin + linkUrl;
+        }
+
+        const sourceUrlWithoutPath  = (new URL(sourceUrl)).origin
+        const linkUrlPath = parsedLinkUrl.pathname;
+
+        return sourceUrlWithoutPath + linkUrlPath;
+    } catch (error) {
+        return null;
+    }
+};
+
 const extraxtInternalLinksFromHtml = async (html, url) => {
     const links = await extraxtLinksFromHtml(html)
-
-    const urlObject = new URL(url);
-
-    const linkStartWithSameOrigin = links.filter(url => {
-        return url[0] === '/'
-    }).map(url => {
-        return `${urlObject.origin}${url}`
+    const allLinks = links.map(link => {
+        return normalizeUrl(url, link)
     })
 
-    const linkWithSameOrigin = links.filter(url => {
-        return url.includes(urlObject.host)
-    }).filter( _url => {
-        const urlObjectTemp = new URL(_url)
-        return urlObject.host === urlObjectTemp.host
-    })
-
-    return [
-        ...linkStartWithSameOrigin,
-        ...linkWithSameOrigin
-    ]
+    const result = [...new Set(allLinks)]
+    // remove empty string
+    const noSpaceResult = result.filter(item => item)
+    return noSpaceResult
 }
 
 module.exports = {
@@ -84,4 +94,5 @@ module.exports = {
     fetchHtmlAxios,
     extraxtLinksFromHtml,
     extraxtInternalLinksFromHtml,
+    normalizeUrl,
 }
